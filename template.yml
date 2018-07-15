@@ -5,7 +5,7 @@ Resources:
   HelloWorld:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: index.hello
+      Handler: index.check
       Runtime: nodejs6.10
       Environment:
         Variables:
@@ -14,5 +14,5 @@ Resources:
         GetResource:
           Type: Api
           Properties:
-            Path: /resource/{resourceId}
-            Method: put
+            Path: /check/
+            Method: get

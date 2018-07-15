@@ -7,24 +7,36 @@ const config: AWS.S3.Types.ClientConfiguration = {
 }
 const s3 = new AWS.S3(config)
  
-export async function hello(event: Lambda.APIGatewayEvent, context: Lambda.Context, callback: Lambda.ProxyCallback) {
-  const resourceId = event.pathParameters!.resourceId
+export async function check(event: Lambda.APIGatewayEvent, context: Lambda.Context, callback: Lambda.ProxyCallback) {
   try {
-    await s3.putObject({
+    var params = {
       Bucket: "test-bucket",
-      Key: resourceId,
-      Body: "hogehoge",
-    }).promise()
-    callback(null, {
+      Prefix: ""
+    };
+
+    var result = null
+
+    await s3.listObjectsV2(params).promise().then(
+      function(data){
+        result = data.Contents
+      }
+    ).catch(
+      function(err){
+        result = err  
+      }
+    )
+
+    var result_json = {
       statusCode: 200,
       body: JSON.stringify({
-        resourceId,
-        contextRequestId: context.awsRequestId
+        data: result,
       }),
       headers:{
         "Content-Type": "application/json"
       }
-    })
+    }
+
+    callback(null, result_json)
   } catch (e) {
     callback(e)
   }
