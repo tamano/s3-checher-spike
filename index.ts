@@ -14,22 +14,13 @@ export async function check(event: Lambda.APIGatewayEvent, context: Lambda.Conte
       Prefix: ""
     };
 
-    var result = null
+    var left_objects = await fetch_s3(params)
+    console.log(left_objects)
 
-    await s3.listObjectsV2(params).promise().then(
-      function(data){
-        result = data.Contents
-      }
-    ).catch(
-      function(err){
-        result = err  
-      }
-    )
 
     var result_json = {
       statusCode: 200,
       body: JSON.stringify({
-        data: result,
       }),
       headers:{
         "Content-Type": "application/json"
@@ -40,4 +31,23 @@ export async function check(event: Lambda.APIGatewayEvent, context: Lambda.Conte
   } catch (e) {
     callback(e)
   }
+}
+
+async function fetch_s3(params:{Bucket: string }) {
+  var result:any = []
+  await s3.listObjectsV2(params).promise().then(
+    function(data){
+      if(data.Contents !== undefined){
+        data.Contents.forEach( function(value){
+            result.push(value.Key)
+        })
+      }
+    }
+  ).catch(
+    function(err){
+      result = err  
+    }
+  )
+
+  return result
 }
