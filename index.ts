@@ -62,17 +62,18 @@ async function fetch_s3(bucket: string, prefix?: string) {
   }
 
   var result:any = []
+  // TBD: async/awaitを使って書き換えること
   await s3.listObjectsV2(params).promise().then(
     function(data){
       if(data.Contents !== undefined){
         data.Contents.forEach( function(value){
-            result.push(value.Key)
+          result.push(value.Key)
         })
       }
     }
   ).catch(
     function(err){
-      result = err  
+      result = err
     }
   )
 
