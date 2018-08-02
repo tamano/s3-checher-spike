@@ -10,6 +10,7 @@ Resources:
       Environment:
         Variables:
           NODE_ENV: !Ref NODE_ENV
+          TARGET_BUCKETS: !Ref TARGET_BUCKETS
       Events:
         GetResource:
           Type: Api
