@@ -9,31 +9,58 @@ const s3 = new AWS.S3(config)
  
 export async function check(event: Lambda.APIGatewayEvent, context: Lambda.Context, callback: Lambda.ProxyCallback) {
   try {
-    var params = {
-      Bucket: "test-bucket",
-      Prefix: ""
-    };
 
-    var left_objects = await fetch_s3(params)
-    console.log(left_objects)
-
-
-    var result_json = {
-      statusCode: 200,
-      body: JSON.stringify({
-      }),
-      headers:{
-        "Content-Type": "application/json"
-      }
+    if(process.env.TARGET_BUCKETS === undefined) {
+      callback(null, result_json(false, "バケットを指定してください"))
+      return
     }
 
-    callback(null, result_json)
+    var targets:Array<string> = process.env.TARGET_BUCKETS.split(',')
+    var has_error:boolean = false
+    var results:Array<string> = []
+
+    for (let index = 0; index < targets.length; index++) {
+      const target = targets[index]
+      var [bucket, prefix] = split_to_bucket_and_prefix(target)
+
+      prefix = (prefix === undefined) ? "" : prefix
+  
+      var left_objects = await fetch_s3(bucket, prefix)
+
+      var message = "[" + bucket + "/" + prefix + "] "
+
+      // 各種の通知
+      if(left_objects.length !== 0){
+        if(left_objects instanceof Array){
+          message +=　left_objects.length + "個のファイルが残っています！"
+        }
+        else {
+          message += left_objects
+        }
+
+        has_error = true
+
+      }
+      else{
+        message += "エラーはありませんでした"
+      }
+
+      results.push(message)
+    }
+
+    callback(null, result_json(!has_error, results))
+
   } catch (e) {
-    callback(e)
+    callback(e, result_json(false, e.message))
   }
 }
 
-async function fetch_s3(params:{Bucket: string }) {
+async function fetch_s3(bucket: string, prefix?: string) {
+  var params = {
+    Bucket: bucket,
+    Prefix: prefix
+  }
+
   var result:any = []
   await s3.listObjectsV2(params).promise().then(
     function(data){
@@ -48,6 +75,22 @@ async function fetch_s3(params:{Bucket: string }) {
       result = err  
     }
   )
+
+  return result
+}
+
+function split_to_bucket_and_prefix(text: string ) {
+  return text.split(":")
+}
+
+function result_json(succeed: boolean, body: string[] | string ) {
+  var result = {
+    statusCode: succeed ? 200 : 500,
+    body: JSON.stringify({has_error: !succeed, message: body}),
+    headers:{
+      "Content-Type": "application/json"
+    }
+  }
 
   return result
 }
